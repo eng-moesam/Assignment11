@@ -31,7 +31,7 @@ export const signUpschema = {
     phone:commonValditions.phone,
     DOB:commonValditions.DOB,
     gender:commonValditions.gender,
-        otp:  joi.string().required()
+     otp:  joi.string().required()
 
   }).required()
 }

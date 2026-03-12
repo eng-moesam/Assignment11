@@ -1,6 +1,7 @@
 
 import joi from "joi"
 import { GenderEnum } from "../Common/Enums/user.enums.js"
+import { Types } from "mongoose"
 
 
   export function validation(schema){
@@ -48,3 +49,9 @@ export const commonValditions ={
 
 
 }
+
+export function ValditionObjectId(value,helpers){
+      if(!Types.ObjectId.isValid(value)){
+        return helpers.message("invalid object Id")
+      }
+    }

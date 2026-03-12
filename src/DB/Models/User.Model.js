@@ -42,7 +42,8 @@ const userSchema = new mongoose.Schema({
         enum:Object.values(providerEnum),
         default:providerEnum.System
     },
-    profilePicture:String
+    profilePicture:String,
+     covPic:[String]
 
 },{
     timestamps:true

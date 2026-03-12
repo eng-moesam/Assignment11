@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import { providerEnum, RoleEnum } from "../../Common/Enums/user.enums.js";
 import { tokenType } from "../../Common/Enums/token.enums.js";
 import { generateToken, genratesignToken, getSignature } from "../../Common/Security/token.js";
-import { decryptString } from "../../Common/Security/bycript.js";
+import { decryptValue } from "../../Common/Security/bycript.js";
 import { OAuth2Client } from 'google-auth-library';
 import { sendEmail } from "../../Common/Services/Email/send.email.js";
 import { temblateEmail } from "../../Common/Services/Email/email.temblate.js";
@@ -82,41 +82,6 @@ export async function signUp(bodyData) {
 }
 
 
-export async function signUpwithImage(bodyData, file) {
-
-  const { email, otp } = bodyData;
-  const emailexist = await dbRepo.findOne({ model: userModel, filters: { email } })
-
-
-  if (emailexist) {
-    throw new Error("email already exist", { cause: { statuscode: 404 } })
-  }
-
-  const otpUser = await dbRepo.findOne({ model: OtpModel, filters: { email } })
-  if (!otpUser) {
-    throw new Error("otp not found or expired. Request a new otp. or Email invalid", { cause: { statuscode: 400 } });
-  }
-  const isotp = await compareOperation({ plaintext: otp, hashedvalue: otpUser.otp })
-  if (!isotp) {
-    throw new Error("invalid", { cause: { statuscode: 400 } });
-  }
-  let image = ""
-  if (file) {
-    image = `http://localhost:3000/tmp/${file.filename}`
-  }
-
-  bodyData.password = await hashOperation({ plaintext: bodyData.password, round: SALT_ROUNDS })
-  bodyData.phone = CryptoJS.AES.encrypt(bodyData.phone, ENCRPTION_KEY).toString();
-  delete bodyData.otp;
-  const result = await dbRepo.create({ model: userModel, data: { ...bodyData, profilePicture: image } })
-  await dbRepo.findOneAndDelete({
-    model: OtpModel,
-    filters: { email: email }
-  });
-  return result
-
-}
-
 export async function login(bodyData, protocol, host) {
 
   const { email, password } = bodyData
@@ -129,7 +94,7 @@ export async function login(bodyData, protocol, host) {
   const ispassword = await compareOperation({ plaintext: password, hashedvalue: user.password })
 
 
-  user.phone = decryptString({ decryptedValue: user.phone })
+  user.phone = decryptValue({ value: user.phone })
 
   if (!ispassword) {
     throw new Error("invalid info", { cause: { statuscode: 404 } })
@@ -152,7 +117,7 @@ export async function login(bodyData, protocol, host) {
     }
   })
 
-  return { acsses_token, refresh_token, user }
+  return { acsses_token, refresh_token }
 
 }
 

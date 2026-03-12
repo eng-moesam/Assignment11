@@ -15,7 +15,7 @@ import mongoose from "mongoose";
 
     timestamps:true
    })
-   otpSchema.index({createdAt: 1}, {expireAfterSeconds: 300})
+   otpSchema.index({createdAt: 1}, {expireAfterSeconds: 720})
 
 
    export const OtpMpdel = mongoose.model("otp",otpSchema)

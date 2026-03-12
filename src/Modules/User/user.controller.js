@@ -4,6 +4,9 @@ import { auth } from "../../Middleware/auth.middleware.js"
 import { tokenType } from "../../Common/Enums/token.enums.js"
 import { authorization } from "../../Middleware/authorization.midlleware.js"
 import { RoleEnum } from "../../Common/Enums/user.enums.js"
+import { allowedFileFormates, localUpload } from "../../Common/Services/Multer/multer.confing.js"
+import { validation } from "../../Middleware/validation.middleware.js"
+import { covPicSchema, GetAnthorUserProfile, ProfilePicSchema } from "./user.validation.js"
 
 const userRouter = express.Router()
 
@@ -32,6 +35,51 @@ userRouter.post("/renew-token",auth(tokenType.refresh) ,async (req, res, next) =
 
     }
 })
+
+userRouter.patch("/upload-mainPic",auth(),localUpload({folderName:"user",allowedFormates:allowedFileFormates.img}).single("profilePicture"),
+validation(ProfilePicSchema),async (req,res,next)=>{
+       console.log(req.file);
+       
+ try {
+        const result = await userservice.uploadProfilePic(req.user._id,req.file)
+        return res.status(201).json({ mes: "done", result })
+ 
+    } catch (error) {
+        next(error)
+
+    }
+
+})
+
+userRouter.patch("/upload-covPic",auth(),localUpload({folderName:"user",allowedFormates:allowedFileFormates.img}).array("covPic",2),
+validation(covPicSchema),async (req,res,next)=>{
+       console.log(req.files);
+       
+ try {
+        const result = await userservice.uploadCovPic(req.user._id,req.files)
+        return res.status(201).json({ mes: "done", result })
+ 
+    } catch (error) {
+        next(error)
+
+    }
+
+})
+
+userRouter.get("/get-profile/:profileId",validation(GetAnthorUserProfile),async (req,res,next) => {
+
+         
+ try {
+        const result = await userservice.getProfile(req.params.profileId)
+        return res.status(200).json({ mes: "done", result })
+ 
+    } catch (error) {
+        next(error)
+
+    }
+    
+})
+
 
 export default userRouter
 
