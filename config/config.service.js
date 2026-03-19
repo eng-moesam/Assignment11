@@ -21,3 +21,6 @@ export const TOKEN_SIGNATURE_ADMIN_Refresh= process.env.TOKEN_SIGNATURE_ADMIN_Re
 export const WEB_CLIENT_ID = process.env.WEB_CLIENT_ID||""
 export const EMAIL_APP_PASSWORD=process.env.EMAIL_APP_PASSWORD||""
 export const EMAIL=process.env.EMAIL||""
+
+export const REDIS_URL = process.env.REDIS_URL||""
+

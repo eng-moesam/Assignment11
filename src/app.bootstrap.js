@@ -8,6 +8,7 @@ import cors from "cors"
 import { sendEmail } from "./Common/Services/Email/send.email.js";
 import path, {resolve} from "node:path"
 import { temblateEmail } from "./Common/Services/Email/email.temblate.js";
+import { testRedisConnection } from "./Common/Services/Redis/redis.connection.js";
 // import { globalErrHandlling } from "./Common/Response/response.js";
 // import dotenv from 'dotenv'
 // import path from "path";
@@ -18,6 +19,8 @@ async function bootstrap(){
 const app =express()
 const port = PORT;
 await connectDB()
+await testRedisConnection()
+
 // await sendEmail({to:"moesam224466@gmail.com",subject:"this is my code",text:"hi iam from saraha app",html:temblateEmail(12344),
 //     attachments:[{
 //         path:resolve("./data.txt"),

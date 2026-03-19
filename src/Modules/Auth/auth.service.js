@@ -100,23 +100,7 @@ export async function login(bodyData, protocol, host) {
     throw new Error("invalid info", { cause: { statuscode: 404 } })
   }
 
-
-  const { accessSignature, refreshSignature } = getSignature(user.role)
-
-  const acsses_token = generateToken({
-    payload: { sub: user._id }, signature: accessSignature, options: {
-      audience: [user.role, tokenType.access],
-      expiresIn: 60 * 15
-    }
-  })
-
-  const refresh_token = generateToken({
-    payload: { sub: user._id }, signature: refreshSignature, options: {
-      audience: [user.role, tokenType.refresh],
-      expiresIn: "1y"
-    }
-  })
-
+  const { acsses_token, refresh_token } = genratesignToken(user);
   return { acsses_token, refresh_token }
 
 }

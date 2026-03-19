@@ -2,6 +2,8 @@ import { TOKEN_SIGNATURE_ADMIN, TOKEN_SIGNATURE_ADMIN_Refresh, TOKEN_SIGNATURE_U
 import { tokenType } from "../Enums/token.enums.js";
 import { RoleEnum } from "../Enums/user.enums.js";
 import jwt from 'jsonwebtoken';
+import {randomUUID} from "node:crypto"  
+
 export function getSignature(role = RoleEnum.User) {
 
          let refreshSignature=""
@@ -34,20 +36,24 @@ export function decodedToken(token){
 }
 
 export function genratesignToken(user){
-     const { accessSignature, refreshSignature } = getSignature(user.role)
-    
-          const acsses_token = generateToken({payload:{ sub:user._id},signature:accessSignature,options:{
-            audience:[user.role,tokenType.access] ,
-            expiresIn:60*15
-          }})
-    
-           const refresh_token =generateToken({payload:{ sub:user._id},signature:refreshSignature,options:{
-            audience:[user.role,tokenType.refresh] ,
-            expiresIn:"1y"
-          }})
-        
-        
-            
-    
-         return  {acsses_token,refresh_token} 
+
+  const { accessSignature, refreshSignature } = getSignature(user.role)
+     const jid= randomUUID()
+       const acsses_token = generateToken({payload:{ sub:user._id
+       }
+         ,signature:accessSignature,options:{
+         audience:[user.role,tokenType.access] ,
+         expiresIn:60*60,
+         jwtid:jid
+       }})
+ 
+        const refresh_token =generateToken({payload:{ sub:user._id},signature:refreshSignature,options:{
+         audience:[user.role,tokenType.refresh] ,
+         expiresIn:"1y",
+         jwtid:jid
+
+       }})
+     
+  
+      return  {acsses_token,refresh_token} 
 }

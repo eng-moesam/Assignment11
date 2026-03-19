@@ -43,8 +43,12 @@ const userSchema = new mongoose.Schema({
         default:providerEnum.System
     },
     profilePicture:String,
-     covPic:[String]
-
+    covPic:[String],
+    gallery:[String],
+    profileVisits:{
+        type:Number,
+        default:0
+    }
 },{
     timestamps:true
 })
