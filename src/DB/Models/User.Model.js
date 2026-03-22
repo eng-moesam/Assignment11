@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
     },
     confrimEmail:{
         type:Boolean,
-        default:true
+        default:false
     },provider:{ 
         type:String,
         enum:Object.values(providerEnum),

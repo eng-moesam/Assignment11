@@ -1,4 +1,5 @@
 import { compare, hash } from "bcrypt";
+import { SALT_ROUNDS } from "../../../config/config.service.js";
 
 export async function hashOperation({plaintext , round = SALT_ROUNDS}) {
 

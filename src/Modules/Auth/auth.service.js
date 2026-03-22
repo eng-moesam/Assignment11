@@ -1,95 +1,81 @@
-import { compare, hash } from "bcrypt";
 import userModel from "../../DB/Models/User.Model.js";
 import * as dbRepo from "../../DB/db.repostory.js"
 import { ENCRPTION_KEY, SALT_ROUNDS, TOKEN_SIGNATURE_ADMIN, TOKEN_SIGNATURE_ADMIN_Refresh, TOKEN_SIGNATURE_USER, TOKEN_SIGNATURE_USER_Refresh, WEB_CLIENT_ID } from "../../../config/config.service.js";
 import { compareOperation, hashOperation } from "../../Common/Security/hash.js";
 import CryptoJS from "crypto-js";
-import jwt from 'jsonwebtoken';
-import { providerEnum, RoleEnum } from "../../Common/Enums/user.enums.js";
-import { tokenType } from "../../Common/Enums/token.enums.js";
-import { generateToken, genratesignToken, getSignature } from "../../Common/Security/token.js";
+import { providerEnum } from "../../Common/Enums/user.enums.js";
+import { genratesignToken} from "../../Common/Security/token.js";
 import { decryptValue } from "../../Common/Security/bycript.js";
 import { OAuth2Client } from 'google-auth-library';
 import { sendEmail } from "../../Common/Services/Email/send.email.js";
 import { temblateEmail } from "../../Common/Services/Email/email.temblate.js";
-import { OtpMpdel as OtpModel } from "../../DB/Models/Otp.Models.js";
-
-// Encrypt
-// var ciphertext = CryptoJS.AES.encrypt('my message', 'secret key 123').toString();
-// Decrypt
-// var bytes  = CryptoJS.AES.decrypt(ciphertext, 'secret key 123');
-// var originalText = bytes.toString(CryptoJS.enc.Utf8);
-// console.log(originalText); 
-const createOtp = () => {
-  return Math.floor(Math.random() * (999999 - 100000 + 1) + 100000)
-}
-
-
-export const sendOtp = async (data) => {
-  const { email } = data
-  const code = createOtp()
-
-
-  const hashedCode = await hashOperation({
-    plaintext: code.toString(),
-    round: SALT_ROUNDS
-  })
-
-  await dbRepo.updateOne({
-    model: OtpModel,
-    filters: { email }, data: { otp: hashedCode }, options: { upsert: true }
-  })
-
-  await sendEmail({
-    to: email,
-    subject: "this is your verfiy code",
-    html: temblateEmail(code)
-  })
-  return { message: "OTP sent to email", email: email };
-}
-
+import { otp } from "../../Common/Services/Email/otp.service.js";
+import { EmailEnum } from "../../Common/Enums/email.enums.js";
+import * as redisMethods from "../../Common/Services/Redis/redis.service.js"
+  
 
 export async function signUp(bodyData) {
 
-  const { email, otp } = bodyData;
+  const { email} = bodyData;
   const emailexist = await dbRepo.findOne({ model: userModel, filters: { email } })
-
 
   if (emailexist) {
     throw new Error("email already exist", { cause: { statuscode: 404 } })
   }
 
-  const otpUser = await dbRepo.findOne({ model: OtpModel, filters: { email } })
-  if (!otpUser) {
-    throw new Error("otp not found or expired. Request a new otp. or Email dont send otp", { cause: { statuscode: 400 } });
-  }
-  const isotp = await compareOperation({ plaintext: otp, hashedvalue: otpUser.otp })
-  if (!isotp) {
-    throw new Error("invalid", { cause: { statuscode: 400 } });
-  }
-  
 
-  bodyData.password = await hashOperation({ plaintext: bodyData.password, round: SALT_ROUNDS })
+  bodyData.password = await hashOperation({ plaintext: bodyData.password})
   bodyData.phone = CryptoJS.AES.encrypt(bodyData.phone, ENCRPTION_KEY).toString();
-  delete bodyData.otp;
   const result = await dbRepo.create({ model: userModel, data: bodyData })
-  await dbRepo.findOneAndDelete({
-    model: OtpModel,
-    filters: { email: email }
-  });
+
+ await sendEmail({to:email,subject:EmailEnum.confrimEmail,html:temblateEmail(otp)})
+ await  redisMethods.set({key:`OTP::${email}::${EmailEnum.confrimEmail}`,
+  value:await hashOperation({plaintext:String(otp)}),exValue:520})
   return result
 
 }
 
-
+export async function confrimEmail(bodyData) {
+ 
+  const {email , otp} =bodyData
+    const user = await dbRepo.findOne({ model: userModel, filters: { email, confrimEmail:false } })
+ 
+    if (!user) {
+    throw new Error("email already exist", { cause: { statuscode: 409 } })
+  }
+ const storedOtp= await redisMethods.get(`OTP::${email}::${EmailEnum.confrimEmail}`)
+ if (!storedOtp) {
+    throw new Error("expired Otp", { cause: { statuscode: 404 } })
+  }
+  const isOtpValid=await compareOperation({plaintext:otp,hashedvalue:storedOtp})
+  if(!isOtpValid){
+        throw new Error("otp not valid", { cause: { statuscode: 404 } })
+  }
+  user.confrimEmail = true,
+  await user.save();
+}
+export async function resendOtpConfrimEmail(email) {
+ const prevOtp= await redisMethods.ttl(`OTP::${email}::${EmailEnum.confrimEmail}`)
+  if (prevOtp>0) {
+    throw new Error(`There is already OTP expire after ${prevOtp} s`)
+  }
+   await sendEmail({to:email,subject:EmailEnum.confrimEmail,html:temblateEmail(otp)})
+ await  redisMethods.set({key:`OTP::${email}::${EmailEnum.confrimEmail}`,
+  value:await hashOperation({plaintext:String(otp)}),exValue:520})
+ 
+}
 export async function login(bodyData, protocol, host) {
 
   const { email, password } = bodyData
-  const user = await dbRepo.findOne({ model: userModel, filters: { email } })
+  const user = await dbRepo.findOne({ model: userModel, filters: { email
+   } })
 
   if (!user) {
     throw new Error("invalid info", { cause: { statuscode: 404 } })
 
+  }
+  if (!user.confrimEmail) {
+    throw new Error("you need to confrim your email", { cause: { statuscode: 404 } })
   }
   const ispassword = await compareOperation({ plaintext: password, hashedvalue: user.password })
 
@@ -104,9 +90,6 @@ export async function login(bodyData, protocol, host) {
   return { acsses_token, refresh_token }
 
 }
-
-
-
 
 async function verfiyGoogleTokenId(tokenId) {
   const client = new OAuth2Client();

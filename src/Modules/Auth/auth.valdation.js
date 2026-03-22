@@ -9,17 +9,10 @@ export const logInschema = {
   })
 
 }
-export const sendOtpschema={
-  body:joi.object({}).keys({
-    email: commonValditions.email.required(),
 
-  })
-}
 export const signUpschema = {
-
   query: joi.object({}).keys({
     ln: joi.string().valid()
-
   }),
 
   body: joi.object({}).keys({
@@ -31,7 +24,17 @@ export const signUpschema = {
     phone:commonValditions.phone,
     DOB:commonValditions.DOB,
     gender:commonValditions.gender,
-     otp:  joi.string().required()
 
   }).required()
+}
+export const confrimEmailschema={
+  body:joi.object({}).keys({
+    email: commonValditions.email.required(),
+    otp:commonValditions.otp.required()
+  })
+}
+export const resendConfrimEmailschema={
+  body:joi.object({}).keys({
+    email: commonValditions.email.required(),
+  })
 }

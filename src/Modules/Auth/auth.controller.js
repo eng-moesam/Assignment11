@@ -3,21 +3,29 @@ import * as authservice from "./auth.service.js"
 
 import joi from "joi"
 import { validation } from "../../Middleware/validation.middleware.js"
-import { logInschema, sendOtpschema, signUpschema } from "./auth.valdation.js"
+import { logInschema, confrimEmailschema, signUpschema, resendConfrimEmailschema } from "./auth.valdation.js"
 const authRouter = express.Router()
 
-authRouter.post("/sendOtp",validation(sendOtpschema),async (req, res, next) => {
-
+authRouter.post("/confrimEmail",
+    validation(confrimEmailschema),
+    async (req, res, next) => {
     try {
-
-        const result = await authservice.sendOtp(req.vbody)
-        return res.status(201).json({ mes: "done", result })
-       
+        const result = await authservice.confrimEmail(req.vbody)
+        return res.status(201).json({ mes: "done" })
     } catch (error) {
         next(error)
-
     }
-    
+})
+
+authRouter.post("/resendconfrimEmail",
+    validation(resendConfrimEmailschema),
+    async (req, res, next) => {
+    try {
+        const result = await authservice.resendOtpConfrimEmail(req.vbody.email)
+        return res.status(201).json({ mes: "check your inbox" })
+    } catch (error) {
+        next(error)
+    }
 })
 
 authRouter.post("/signUp", validation(signUpschema), async (req, res, next) => {
@@ -28,7 +36,7 @@ authRouter.post("/signUp", validation(signUpschema), async (req, res, next) => {
     try {
 
         const result = await authservice.signUp(req.vbody)
-        return res.status(201).json({ mes: "done", result })
+        return res.status(201).json({ mes: "check your inbox", result })
        
     } catch (error) {
         next(error)
