@@ -169,7 +169,6 @@ export async function login(bodyData) {
     throw new Error("you need to confrim your email", { cause: { statuscode: 404 } });
   }
 
-  // 1) check if account is temporarily blocked
   const blockedKey = redisMethods.getLoginBlockedKey({ email });
   const isBlocked = await redisMethods.exists(blockedKey);
 
@@ -185,7 +184,6 @@ export async function login(bodyData) {
     hashedvalue: user.password
   });
 
-  // 2) wrong password => increase fail counter
   if (!ispassword) {
     const failKey = redisMethods.getLoginFailKey({ email });
     const tryLoginNo = await redisMethods.incr(failKey);
