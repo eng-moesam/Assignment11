@@ -33,7 +33,25 @@ export const confrimEmailschema={
     otp:commonValditions.otp.required()
   })
 }
+export const verfiyOTPforgetPasswordschema={
+  body:joi.object({}).keys({
+    email: commonValditions.email.required(),
+    otp:commonValditions.otp.required()
+  })
+}
+export const resetPasswordschema={
+  body:joi.object({}).keys({
+    email: commonValditions.email.required(),
+    otp:commonValditions.otp.required(),
+    password:commonValditions.password.required()
+  })
+}
 export const resendConfrimEmailschema={
+  body:joi.object({}).keys({
+    email: commonValditions.email.required(),
+  })
+}
+export const sendOTPforgetPasswordschema={
   body:joi.object({}).keys({
     email: commonValditions.email.required(),
   })

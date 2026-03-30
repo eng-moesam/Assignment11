@@ -50,3 +50,26 @@ return await model.updateOne(
       filters,data,options
     )
 }
+export async function find(
+    {model,filters={},select="",populate=false,populateFiled=""}) 
+    
+    {
+    let result ;
+    if(populate){
+   result= 
+   await model.find(filters)
+   .select(select)
+   .populate(populateFiled)   }
+   else{
+    result= await model.find(filters).select(select)
+   }
+   return result
+}
+
+export async function deleteOne({model,filters={},options={}}){
+    return await model.deleteOne(
+          filters,options
+        )
+    }
+    
+    

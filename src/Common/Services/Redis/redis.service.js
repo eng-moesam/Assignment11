@@ -1,12 +1,39 @@
 import { client } from "./redis.connection.js";
 
 
+export function getBlackListToken({userId,tokenId}) {
+    return `blackListToken::${userId}::${tokenId}`
+}
+export function getOtpKey({email,emailType}) {
+    return `OTP::${email}::${emailType}`
+}
+export function getOtpSendNO({email,emailType}) {
+    return `OTP::${email}::${emailType}::NO`
+}
+export function getOtpBlockedKey({email,emailType}) {
+    return `OTP::${email}::${emailType}::Blocked`
+}
+
+
+export function getLoginFailKey({ email }) {
+    return `LOGIN::FAIL::${email}`;
+  }
+  
+  export function getLoginBlockedKey({ email }) {
+    return `LOGIN::BLOCKED::${email}`;
+  }
+
 export async function set({key,value,exType="EX",exValue=120}) {
 
     return await client.set(key,value,{
         expiration:{type:exType  , value:Math.floor(exValue)
         },
     })
+    
+}
+export async function incr(key) {
+
+    return await client.incr(key)
     
 }
 

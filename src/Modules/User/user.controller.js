@@ -6,7 +6,7 @@ import { authorization } from "../../Middleware/authorization.midlleware.js"
 import { RoleEnum } from "../../Common/Enums/user.enums.js"
 import { allowedFileFormates, localUpload } from "../../Common/Services/Multer/multer.confing.js"
 import { validation } from "../../Middleware/validation.middleware.js"
-import { covPicSchema, GetAnthorUserProfile, ProfilePicSchema } from "./user.validation.js"
+import { covPicSchema, GetAnthorUserProfile, ProfilePicSchema, updatePasswordSchema } from "./user.validation.js"
 import * as redisMethods from "../../Common/Services/Redis/redis.service.js"
 const userRouter = express.Router()
 
@@ -108,6 +108,19 @@ userRouter.post("/logout",auth(),async (req,res,next) => {
     try {
            const result = await userservice.logOut(req.user._id,req.payload,req.body.logoutOptions)
            return res.status(200).json({ mes: "done", result })
+    
+       } catch (error) {
+           next(error)
+   
+       }})
+
+       
+userRouter.patch("/updatePassword",auth(),validation(updatePasswordSchema),async (req,res,next) => {
+
+         
+    try {
+           const result = await userservice.UpdatePassword(req.vbody,req.user)
+           return res.status(200).json({ mes: "done" })
     
        } catch (error) {
            next(error)

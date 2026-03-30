@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema({
     profileVisits:{
         type:Number,
         default:0
-    }
+    }, changeCreditTime:Date
 },{
     timestamps:true
 })

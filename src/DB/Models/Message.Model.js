@@ -1,25 +1,29 @@
 import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema({
-    contant:{
+    content:{
         type:String,
-        required:true
+        required:function(){
+            return !this.attachments.length;
+        }
+    },
+    attachments:{
+        type:[String]
     },
     senderId:{
         type:mongoose.Schema.Types.ObjectId
         ,ref:"user"
     },
-    resiverId:{
+    receiverId:{
         type:mongoose.Schema.Types.ObjectId
         ,ref:"user"
         ,required:true
     },
-
-
-
 },{
     timestamps:true
 })
+
+
 
 const messageModel = mongoose.model("message",messageSchema)
 

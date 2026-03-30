@@ -3,9 +3,8 @@ import * as authservice from "./auth.service.js"
 
 import joi from "joi"
 import { validation } from "../../Middleware/validation.middleware.js"
-import { logInschema, confrimEmailschema, signUpschema, resendConfrimEmailschema } from "./auth.valdation.js"
+import { logInschema, confrimEmailschema, signUpschema, resendConfrimEmailschema, verfiyOTPforgetPasswordschema, resetPasswordschema, sendOTPforgetPasswordschema } from "./auth.valdation.js"
 const authRouter = express.Router()
-
 authRouter.post("/confrimEmail",
     validation(confrimEmailschema),
     async (req, res, next) => {
@@ -16,12 +15,52 @@ authRouter.post("/confrimEmail",
         next(error)
     }
 })
+authRouter.post("/sendOTPForgetPassword",
+    validation(sendOTPforgetPasswordschema),
+    async (req, res, next) => {
+    try {
+        const result = await authservice.sendOTPforgetPassword(req.vbody.email)
+        return res.status(201).json({ mes: "check your inpox" })
+    } catch (error) {
+        next(error)
+    }
+})
+authRouter.post("/verfiyForgetPassword",
+    validation(verfiyOTPforgetPasswordschema),
+    async (req, res, next) => {
+    try {
+        const result = await authservice.verfiyOTPforgetPassword(req.vbody)
+        return res.status(201).json({ mes: "verfird" })
+    } catch (error) {
+        next(error)
+    }
+})
+authRouter.post("/resetPassword",
+    validation(resetPasswordschema),
+    async (req, res, next) => {
+    try {
+        const result = await authservice.resetPassword(req.vbody)
+        return res.status(201).json({ mes: "your password reset" })
+    } catch (error) {
+        next(error)
+    }
+})
 
 authRouter.post("/resendconfrimEmail",
     validation(resendConfrimEmailschema),
     async (req, res, next) => {
     try {
         const result = await authservice.resendOtpConfrimEmail(req.vbody.email)
+        return res.status(201).json({ mes: "check your inbox" })
+    } catch (error) {
+        next(error)
+    }
+})
+authRouter.post("/resendForgetPasswordOtp",
+    validation(resendConfrimEmailschema),
+    async (req, res, next) => {
+    try {
+        const result = await authservice.resendForgetPasswordOtp(req.vbody.email)
         return res.status(201).json({ mes: "check your inbox" })
     } catch (error) {
         next(error)

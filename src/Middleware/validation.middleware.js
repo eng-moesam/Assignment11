@@ -46,7 +46,8 @@ export const commonValditions ={
     phone:joi.string().pattern(new RegExp(/^(\+201|00201|01)(0|1|2|5)\d{8}$/)),
     DOB:joi.date(),
     gender:joi.string().valid(...Object.values(GenderEnum)),
-    otp:joi.string().pattern(new RegExp(/\d{6}/))
+    otp:joi.string().pattern(new RegExp(/\d{6}/)),
+    id:joi.string().custom(ValditionObjectId)
 
 }
 

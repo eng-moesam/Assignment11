@@ -9,87 +9,245 @@ import { decryptValue } from "../../Common/Security/bycript.js";
 import { OAuth2Client } from 'google-auth-library';
 import { sendEmail } from "../../Common/Services/Email/send.email.js";
 import { temblateEmail } from "../../Common/Services/Email/email.temblate.js";
-import { otp } from "../../Common/Services/Email/otp.service.js";
+import { createOtp} from "../../Common/Services/Email/otp.service.js";
 import { EmailEnum } from "../../Common/Enums/email.enums.js";
 import * as redisMethods from "../../Common/Services/Redis/redis.service.js"
   
+const otp = createOtp()
+
+
+async function sendEmailOtp({email,emailType,subject}) {
+  const prevOtp = await redisMethods.ttl( redisMethods.getOtpKey({email,emailType}))
+ if (prevOtp > 0) {
+   throw new Error(`There is already OTP expire after ${prevOtp} s`)
+ }
+
+ const isBloked = await redisMethods.exists(redisMethods.getOtpBlockedKey({email,emailType}))
+
+ if (isBloked) {
+
+ const blockTime = await redisMethods.ttl(redisMethods.getOtpBlockedKey({email,emailType})) /60
+  
+   throw new Error(`you have ablock you can send after ${Math.floor(blockTime)} M` );
+   
+   
+ }
+
+ const reqNo = await redisMethods.get(redisMethods.getOtpSendNO({email,emailType}))
+
+ if (reqNo == 5) {
+   await redisMethods.set({
+     key: redisMethods.getOtpBlockedKey({email,emailType}),
+     value: 1
+     , exValue: 600
+   })
+
+   throw new Error("yon dont send more request 5 email in 20 min  ");
+
+ }
+
+
+
+ await sendEmail({ to: email, subject: EmailEnum.confrimEmail, html: temblateEmail(otp) })
+
+
+ await redisMethods.set({
+   key:  redisMethods.getOtpKey({email,emailType}),
+   value: await hashOperation({ plaintext: String(otp) }), exValue: 300
+ })
+ await redisMethods.incr(redisMethods.getOtpSendNO({email,emailType}))
+
+}
 
 export async function signUp(bodyData) {
 
-  const { email} = bodyData;
-  const emailexist = await dbRepo.findOne({ model: userModel, filters: { email } })
+ const { email } = bodyData;
+ const emailexist = await dbRepo.findOne({ model: userModel, filters: { email } })
 
-  if (emailexist) {
-    throw new Error("email already exist", { cause: { statuscode: 404 } })
-  }
+ if (emailexist) {
+   throw new Error("email already exist", { cause: { statuscode: 404 } })
+ }
 
 
-  bodyData.password = await hashOperation({ plaintext: bodyData.password})
-  bodyData.phone = CryptoJS.AES.encrypt(bodyData.phone, ENCRPTION_KEY).toString();
-  const result = await dbRepo.create({ model: userModel, data: bodyData })
+ bodyData.password = await hashOperation({ plaintext: bodyData.password })
+ bodyData.phone = CryptoJS.AES.encrypt(bodyData.phone, ENCRPTION_KEY).toString();
+ const result = await dbRepo.create({ model: userModel, data: bodyData })
 
- await sendEmail({to:email,subject:EmailEnum.confrimEmail,html:temblateEmail(otp)})
- await  redisMethods.set({key:`OTP::${email}::${EmailEnum.confrimEmail}`,
-  value:await hashOperation({plaintext:String(otp)}),exValue:520})
-  return result
+ await sendEmailOtp({email,emailType:EmailEnum.confrimEmail,subject:EmailEnum.confrimEmail})  
+
+ return result
 
 }
 
 export async function confrimEmail(bodyData) {
- 
-  const {email , otp} =bodyData
-    const user = await dbRepo.findOne({ model: userModel, filters: { email, confrimEmail:false } })
- 
-    if (!user) {
-    throw new Error("email already exist", { cause: { statuscode: 409 } })
-  }
- const storedOtp= await redisMethods.get(`OTP::${email}::${EmailEnum.confrimEmail}`)
+
+ const { email, otp } = bodyData
+ const user = await dbRepo.findOne({ model: userModel, filters: { email, confrimEmail: false } })
+
+ if (!user) {
+   throw new Error("email already exist", { cause: { statuscode: 409 } })
+ }
+ const storedOtp = await redisMethods.get( redisMethods.getOtpKey({email,emailType:EmailEnum.confrimEmail}))
  if (!storedOtp) {
-    throw new Error("expired Otp", { cause: { statuscode: 404 } })
-  }
-  const isOtpValid=await compareOperation({plaintext:otp,hashedvalue:storedOtp})
-  if(!isOtpValid){
-        throw new Error("otp not valid", { cause: { statuscode: 404 } })
-  }
-  user.confrimEmail = true,
-  await user.save();
+   throw new Error("expired Otp", { cause: { statuscode: 404 } })
+ }
+ const isOtpValid = await compareOperation({ plaintext: otp, hashedvalue: storedOtp })
+ if (!isOtpValid) {
+   throw new Error("otp not valid", { cause: { statuscode: 404 } })
+ }
+ user.confrimEmail = true,
+   await user.save();
 }
 export async function resendOtpConfrimEmail(email) {
- const prevOtp= await redisMethods.ttl(`OTP::${email}::${EmailEnum.confrimEmail}`)
-  if (prevOtp>0) {
-    throw new Error(`There is already OTP expire after ${prevOtp} s`)
-  }
-   await sendEmail({to:email,subject:EmailEnum.confrimEmail,html:temblateEmail(otp)})
- await  redisMethods.set({key:`OTP::${email}::${EmailEnum.confrimEmail}`,
-  value:await hashOperation({plaintext:String(otp)}),exValue:520})
+    await sendEmailOtp({email,emailType:EmailEnum.confrimEmail,subject:EmailEnum.confrimEmail})  
+}
+export async function resendForgetPasswordOtp(email) {
+    await sendEmailOtp({email,emailType:EmailEnum.forgetPassword,subject:EmailEnum.forgetPassword})  
+}
+export async function sendOTPforgetPassword(email) {
+    const user= await dbRepo.findOne({model:userModel,filters:{email}})
+    if (!user) {
+     return;
+    }
+    if (!user.confrimEmail) {
+     throw new Error("confrim your email frist");
+     
+    }
+    await sendEmailOtp(
+     {email,emailType:EmailEnum.forgetPassword,subject:EmailEnum.forgetPassword})  
+}
+
+export async function verfiyOTPforgetPassword(bodyData) {
+
+ const {email,otp} = bodyData
+ 
+ const emailOtp = await redisMethods.get(
+   redisMethods.getOtpKey({
+     email,
+     emailType: EmailEnum.forgetPassword
+   })
+ )
+ if (!emailOtp) {
+
+   throw new Error("otp Expired");
+   
+   
+ }
+  const storedOtp = await redisMethods.get(redisMethods.getOtpKey({email,emailType:EmailEnum.forgetPassword})) 
+ if (!storedOtp) {
+   throw new Error("expired Otp", { cause: { statuscode: 404 } })
+ }
+ const isOtpValid = await compareOperation({ plaintext: otp, 
+   hashedvalue: storedOtp })
+ if (!isOtpValid) {
+   throw new Error("otp not valid", { cause: { statuscode: 404 } })
+ }
+
  
 }
-export async function login(bodyData, protocol, host) {
+export async function resetPassword(bodyData) {
+ const {email,password,otp}= bodyData
+ await verfiyOTPforgetPassword({email,otp})
 
-  const { email, password } = bodyData
-  const user = await dbRepo.findOne({ model: userModel, filters: { email
-   } })
-
-  if (!user) {
-    throw new Error("invalid info", { cause: { statuscode: 404 } })
-
-  }
-  if (!user.confrimEmail) {
-    throw new Error("you need to confrim your email", { cause: { statuscode: 404 } })
-  }
-  const ispassword = await compareOperation({ plaintext: password, hashedvalue: user.password })
-
-
-  user.phone = decryptValue({ value: user.phone })
-
-  if (!ispassword) {
-    throw new Error("invalid info", { cause: { statuscode: 404 } })
-  }
-
-  const { acsses_token, refresh_token } = genratesignToken(user);
-  return { acsses_token, refresh_token }
+ await dbRepo.updateOne({
+   model:userModel,
+   filters:{email},
+   data:{password:await hashOperation({plaintext:password})}
+ })
 
 }
+export async function login(bodyData) {
+  const { email, password } = bodyData;
+
+  const user = await dbRepo.findOne({ model: userModel, filters: { email } });
+
+  if (!user) {
+    throw new Error("invalid info", { cause: { statuscode: 404 } });
+  }
+
+  if (!user.confrimEmail) {
+    throw new Error("you need to confrim your email", { cause: { statuscode: 404 } });
+  }
+
+  // 1) check if account is temporarily blocked
+  const blockedKey = redisMethods.getLoginBlockedKey({ email });
+  const isBlocked = await redisMethods.exists(blockedKey);
+
+  if (isBlocked) {
+    const remainSeconds = await redisMethods.ttl(blockedKey);
+    throw new Error(`account is blocked, try again after ${remainSeconds} seconds`, {
+      cause: { statuscode: 409 }
+    });
+  }
+
+  const ispassword = await compareOperation({
+    plaintext: password,
+    hashedvalue: user.password
+  });
+
+  // 2) wrong password => increase fail counter
+  if (!ispassword) {
+    const failKey = redisMethods.getLoginFailKey({ email });
+    const tryLoginNo = await redisMethods.incr(failKey);
+
+    if (tryLoginNo == 1) {
+      await redisMethods.set({
+        key: failKey,
+        value: tryLoginNo,
+        exValue: 60 * 5
+      });
+    }
+
+    if (tryLoginNo >= 5) {
+      await redisMethods.set({
+        key: blockedKey,
+        value: 1,
+        exValue: 60 * 5
+      });
+
+      await redisMethods.del(failKey);
+
+      throw new Error("account blocked for 5 minutes", {
+        cause: { statuscode: 409 }
+      });
+    }
+
+    throw new Error("invalid info", { cause: { statuscode: 404 } });
+  }
+
+  await redisMethods.del(redisMethods.getLoginFailKey({ email }));
+  await redisMethods.del(blockedKey);
+
+  const { acsses_token, refresh_token } = genratesignToken(user);
+  return { acsses_token, refresh_token };
+}
+// export async function login(bodyData, protocol, host) {
+
+//   const { email, password } = bodyData
+//   const user = await dbRepo.findOne({ model: userModel, filters: { email
+//    } })
+
+//   if (!user) {
+//     throw new Error("invalid info", { cause: { statuscode: 404 } })
+
+//   }
+//   if (!user.confrimEmail) {
+//     throw new Error("you need to confrim your email", { cause: { statuscode: 404 } })
+//   }
+
+//   const ispassword = await compareOperation({ plaintext: password, hashedvalue: user.password })
+
+
+//   user.phone = decryptValue({ value: user.phone })
+
+//   if (!ispassword) {
+//     throw new Error("invalid info", { cause: { statuscode: 404 } })
+//   }
+
+//   const { acsses_token, refresh_token } = genratesignToken(user);
+//   return { acsses_token, refresh_token }
+
+// }
 
 async function verfiyGoogleTokenId(tokenId) {
   const client = new OAuth2Client();

@@ -1,7 +1,7 @@
 
 import joi from"joi"
 import { Types } from "mongoose"
-import { ValditionObjectId } from "../../Middleware/validation.middleware.js"
+import { commonValditions, ValditionObjectId } from "../../Middleware/validation.middleware.js"
 
 
 export  const ProfilePicSchema ={
@@ -36,7 +36,15 @@ export  const covPicSchema ={
     }).required()
     ).required()
 }
+export const updatePasswordSchema ={
 
+  body: joi.object({}).keys({
+   oldPassword:commonValditions.password.required(),
+   newPassword:commonValditions.password.required(),
+  confrimPassword:joi.string().valid(joi.ref("newPassword")).required()
+  }).required()
+ 
+ }
 export const GetAnthorUserProfile ={
   params:joi.object().keys({
     profileId:joi.string().custom(ValditionObjectId).required()

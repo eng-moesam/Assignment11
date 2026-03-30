@@ -10,6 +10,7 @@ import { decryptValue } from "../../Common/Security/bycript.js";
 import path from "node:path";
 import fs from "node:fs";
 import * as redisMethods from "../../Common/Services/Redis/redis.service.js"
+import { compareOperation, hashOperation } from "../../Common/Security/hash.js";
 export async function getById(userData) {  
     return userData
  }
@@ -146,6 +147,37 @@ export async function getById(userData) {
    
 
   }
+}
+
+
+export async function UpdatePassword(bodyData, userData) {
+
+  const { newPassword, oldPassword } = bodyData
+
+  const { password } = userData
+  const isOldpassword = await compareOperation({ plaintext: oldPassword, hashedvalue: password })
+
+  if (!isOldpassword) {
+
+     throw new Error("invalid old password");
+
+
+  }
+
+  await dbRepo.updateOne(
+     {
+        model: userModel,
+        filters: {
+           _id: userData._id
+        },
+        data: {
+           password: await hashOperation({ plaintext: newPassword }),
+           changeCreditTime: new Date()
+        }
+
+     }
+  )
+
 }
 
 
