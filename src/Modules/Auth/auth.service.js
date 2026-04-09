@@ -1,10 +1,10 @@
 import userModel from "../../DB/Models/User.Model.js";
 import * as dbRepo from "../../DB/db.repostory.js"
-import { ENCRPTION_KEY, SALT_ROUNDS, TOKEN_SIGNATURE_ADMIN, TOKEN_SIGNATURE_ADMIN_Refresh, TOKEN_SIGNATURE_USER, TOKEN_SIGNATURE_USER_Refresh, WEB_CLIENT_ID } from "../../../config/config.service.js";
+import { ENCRPTION_KEY, FRONTEND_URL, PASSWORD_RESET_EXPIRES_MIN, PASSWORD_RESET_SECRET, WEB_CLIENT_ID } from "../../../config/config.service.js";
 import { compareOperation, hashOperation } from "../../Common/Security/hash.js";
 import CryptoJS from "crypto-js";
 import { providerEnum } from "../../Common/Enums/user.enums.js";
-import { genratesignToken} from "../../Common/Security/token.js";
+import { genratesignToken,generateToken,verfiyToken} from "../../Common/Security/token.js";
 import { decryptValue } from "../../Common/Security/bycript.js";
 import { OAuth2Client } from 'google-auth-library';
 import { sendEmail } from "../../Common/Services/Email/send.email.js";
@@ -12,11 +12,11 @@ import { temblateEmail } from "../../Common/Services/Email/email.temblate.js";
 import { createOtp} from "../../Common/Services/Email/otp.service.js";
 import { EmailEnum } from "../../Common/Enums/email.enums.js";
 import * as redisMethods from "../../Common/Services/Redis/redis.service.js"
-  
-const otp = createOtp()
+import { Enaple2FA, send2FACode } from "../User/user.service.js";
+import { randomUUID } from "node:crypto";
 
 
-async function sendEmailOtp({email,emailType,subject}) {
+export async function sendEmailOtp({email,emailType,subject}) {
   const prevOtp = await redisMethods.ttl( redisMethods.getOtpKey({email,emailType}))
  if (prevOtp > 0) {
    throw new Error(`There is already OTP expire after ${prevOtp} s`)
@@ -47,8 +47,8 @@ async function sendEmailOtp({email,emailType,subject}) {
  }
 
 
-
- await sendEmail({ to: email, subject: EmailEnum.confrimEmail, html: temblateEmail(otp) })
+ const otp = createOtp()
+ await sendEmail({ to: email, subject: subject, html: temblateEmail(otp) })
 
 
  await redisMethods.set({
@@ -74,7 +74,7 @@ export async function signUp(bodyData) {
  const result = await dbRepo.create({ model: userModel, data: bodyData })
 
  await sendEmailOtp({email,emailType:EmailEnum.confrimEmail,subject:EmailEnum.confrimEmail})  
-
+ 
  return result
 
 }
@@ -215,10 +215,29 @@ export async function login(bodyData) {
 
   await redisMethods.del(redisMethods.getLoginFailKey({ email }));
   await redisMethods.del(blockedKey);
-
+  if(user.isStepVerficationEnabled){
+  const result =  await send2FACode(user,false)
+  return result;
+  }
   const { acsses_token, refresh_token } = genratesignToken(user);
   return { acsses_token, refresh_token };
 }
+export async function loginFor2FA(bodyData) {
+  const { email,otp } = bodyData;
+
+  const user = await dbRepo.findOne({ model: userModel, 
+    filters: { email ,confrimEmail:{$exists:true},provider:providerEnum.System } });
+
+  if (!user) {
+    throw new Error("invalid info", { cause: { statuscode: 404 } });
+  }
+
+ const result = await Enaple2FA(user,{otp},false)
+  
+  const { acsses_token, refresh_token } = genratesignToken(user);
+  return { result, acsses_token, refresh_token };
+}
+
 // export async function login(bodyData, protocol, host) {
 
 //   const { email, password } = bodyData
@@ -316,3 +335,79 @@ export async function signupWithGmail(bodyData) {
 }
 
 
+
+const RESET_AUDIENCE = "password_reset";
+export async function sendPasswordResetLink(email) {
+  const user = await dbRepo.findOne({ model: userModel, filters: { email } });
+  if (!user) {
+    throw new Error("user not found", { cause: { statuscode: 404 } });
+  };
+  if (!user.confrimEmail) {
+    throw new Error("confirm your email first", { cause: { statuscode: 400 } });
+  }
+  const prevResetPasswordLink = await redisMethods.ttl(redisMethods.getPasswordResetJtiKey(jti))
+  if (prevResetPasswordLink > 0) {
+    throw new Error("reset password link already sent", { cause: { statuscode: 400 } });
+  }
+  const jti = randomUUID();
+  const expiresMin = PASSWORD_RESET_EXPIRES_MIN * 60;
+  const token = generateToken({
+    payload: { sub: user._id.toString() },
+    signature: PASSWORD_RESET_SECRET,
+    options: {
+      expiresIn: expiresMin,
+      jwtid: jti,
+      audience: RESET_AUDIENCE,
+    },
+  });
+  await redisMethods.set({
+    key: redisMethods.getPasswordResetJtiKey(jti),
+    value: user._id.toString(),
+    exValue: expiresMin,
+  });
+  const link = `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(token)}`;
+  await sendEmail({
+    to: email,
+    subject: "Reset password",
+    html: `<p>use this link to reset your password:</p><a href="${link}">${link}</a>`,
+  });
+}
+
+export async function resetPasswordWithJwt({ token, newPassword }) {
+  let decoded;
+  try {
+    decoded = verfiyToken({
+      token,
+      signature: PASSWORD_RESET_SECRET,
+    });
+  } catch {
+    throw new Error("invalid or expired token", { cause: { statuscode: 400 } });
+  }
+
+  if (!decoded.aud || decoded.aud !== RESET_AUDIENCE) {
+    throw new Error("invalid token purpose", { cause: { statuscode: 400 } });
+  }
+
+  const jti = decoded.jti;
+  if (!jti) {
+    throw new Error("invalid token", { cause: { statuscode: 400 } });
+  }
+
+  const key = redisMethods.getPasswordResetJtiKey(jti);
+  const storedUserId = await redisMethods.get(key);
+
+  if (!storedUserId || storedUserId !== decoded.sub) {
+    throw new Error("token already used or invalid", { cause: { statuscode: 400 } });
+  }
+
+  await dbRepo.updateOne({
+    model: userModel,
+    filters: { _id: storedUserId },
+    data: {
+      password: await hashOperation({ plaintext: newPassword }),
+      changeCreditTime: new Date(),
+    },
+  });
+
+  await redisMethods.del(key);
+}

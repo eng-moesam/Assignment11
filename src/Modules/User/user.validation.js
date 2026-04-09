@@ -50,3 +50,10 @@ export const GetAnthorUserProfile ={
     profileId:joi.string().custom(ValditionObjectId).required()
   }).required(),
 }
+
+
+export const otp2FASchema ={
+  body:  joi.object({}).keys({
+otp:commonValditions.otp.required()
+  }).required()
+}

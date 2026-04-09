@@ -3,7 +3,7 @@ import * as authservice from "./auth.service.js"
 
 import joi from "joi"
 import { validation } from "../../Middleware/validation.middleware.js"
-import { logInschema, confrimEmailschema, signUpschema, resendConfrimEmailschema, verfiyOTPforgetPasswordschema, resetPasswordschema, sendOTPforgetPasswordschema } from "./auth.valdation.js"
+import { logInschema, confrimEmailschema, signUpschema, resendConfrimEmailschema, verfiyOTPforgetPasswordschema, resetPasswordschema, sendOTPforgetPasswordschema, logIn2FASchema, sendResetPasswordLinkschema, resetPasswordWithLinkschema } from "./auth.valdation.js"
 const authRouter = express.Router()
 authRouter.post("/confrimEmail",
     validation(confrimEmailschema),
@@ -109,6 +109,34 @@ authRouter.post("/logIn",validation(logInschema), async (req, res, next) => {
     }
 })
 
+authRouter.post("/logInFA",validation(logIn2FASchema), async (req, res, next) => {
+    
+    try {
+        const result = await authservice.loginFor2FA(req.body,req.protocol,req.host)
+        return res.status(201).json({ mes: "done", result })
+
+    } catch (error) {
+        next(error)
+
+    }
+})
+
+authRouter.post("/sendResetPasswordLink",validation(sendResetPasswordLinkschema), async (req, res, next) => {
+    try {
+        const result = await authservice.sendPasswordResetLink(req.body.email)
+        return res.status(201).json({ mes: "done", result })
+    } catch (error) {
+        next(error)
+    }
+})
+authRouter.post("/resetPasswordWithLink",validation(resetPasswordWithLinkschema), async (req, res, next) => {
+    try {
+        const result = await authservice.resetPasswordWithJwt(req.body)
+        return res.status(201).json({ mes: "done", result })
+    } catch (error) {
+        next(error)
+    }
+})
 
 
 

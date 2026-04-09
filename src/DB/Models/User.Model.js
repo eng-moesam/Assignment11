@@ -2,57 +2,68 @@ import mongoose from "mongoose";
 import { GenderEnum, providerEnum, RoleEnum } from "../../Common/Enums/user.enums.js";
 
 const userSchema = new mongoose.Schema({
-    userName:{
-        type:String,
-        required:true
+    userName: {
+        type: String,
+        required: true
     },
-    email:{
-        type:String,
-        unique:true,
-        required:true
+    email: {
+        type: String,
+        unique: true,
+        required: true
     },
-    password:{
-        type:String,
-        required:function(){
+    password: {
+        type: String,
+        required: function () {
             this.provider == providerEnum.System
         }
     },
-    phone:String
+    phone: String
     ,
-    DOB:{
-        type:Date
+    DOB: {
+        type: Date
     },
-    role:{
-        type:String,
-        enum:Object.values(RoleEnum),
-        default:RoleEnum.User
+    role: {
+        type: String,
+        enum: Object.values(RoleEnum),
+        default: RoleEnum.User
 
     }
     ,
-    gender:{
-        type:String,
-        enum:Object.values(GenderEnum),
-        default:GenderEnum.Male
+    gender: {
+        type: String,
+        enum: Object.values(GenderEnum),
+        default: GenderEnum.Male
     },
-    confrimEmail:{
-        type:Boolean,
-        default:false
-    },provider:{ 
-        type:String,
-        enum:Object.values(providerEnum),
-        default:providerEnum.System
+    confrimEmail: {
+        type: Boolean,
+        default: false
+    }, provider: {
+        type: String,
+        enum: Object.values(providerEnum),
+        default: providerEnum.System
     },
-    profilePicture:String,
-    covPic:[String],
-    gallery:[String],
-    profileVisits:{
-        type:Number,
-        default:0
-    }, changeCreditTime:Date
-},{
-    timestamps:true
+    profilePicture: String,
+    covPic: [String],
+    gallery: [String],
+    profileVisits: {
+        type: Number,
+        default: 0
+    },
+    changeCreditTime: Date,
+    isStepVerficationEnabled: {
+        type: Boolean,
+        default: false
+    }
+
+}, {
+    timestamps: true
 })
 
+userSchema.index({ createdAt: 1 },
+    {
+        expireAfterSeconds: 60 * 60 * 24
+        , partialFilterExpression: { confrimEmail: false }
+    })
 
 const userModel = mongoose.model("user", userSchema)
 

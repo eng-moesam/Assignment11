@@ -11,6 +11,10 @@ import path from "node:path";
 import fs from "node:fs";
 import * as redisMethods from "../../Common/Services/Redis/redis.service.js"
 import { compareOperation, hashOperation } from "../../Common/Security/hash.js";
+import { badRequstExpention, conflictExpention, notFoundExpention } from "../../Common/Response/response.js";
+import { sendEmailOtp } from "../Auth/auth.service.js";
+import { EmailEnum } from "../../Common/Enums/email.enums.js";
+import { isBlockedSendOtp } from "../../Common/Services/Email/otp.service.js";
 export async function getById(userData) {  
     return userData
  }
@@ -179,5 +183,53 @@ export async function UpdatePassword(bodyData, userData) {
   )
 
 }
+
+export async function send2FACode(user,fristTick=true) {
+  if(fristTick){
+  if(user.isStepVerficationEnabled){
+    return conflictExpention("2FA already enabled")
+  }}
+
+  await sendEmailOtp({email:user.email,
+    emailType:EmailEnum.TwoStepFA,
+    subject:EmailEnum.TwoStepFA
+  })
+   return "otp send to your Email"
+}
+export async function Enaple2FA(user,bodyData,firstTrick=true) {
+
+  const {otp} = bodyData
+  await isBlockedSendOtp({email:user.email,emailType:EmailEnum.TwoStepFA})
+
+if(firstTrick){
+  if(user.isStepVerficationEnabled){
+    return conflictExpention("2FA already enabled")
+  }}
+
+  const isOtpFind = await redisMethods.get(redisMethods.getOtpKey({email:user.email,emailType:EmailEnum.TwoStepFA}))
+
+  if (!isOtpFind) {
+
+    return notFoundExpention("otp is expired")
+    
+  }
+
+  const isotp =await compareOperation({plaintext:otp,hashedvalue:isOtpFind})
+
+  if(!isotp){
+    return badRequstExpention("invalid otp")
+  }
+if (firstTrick) {
+  user.isStepVerficationEnabled=true
+  await user.save()}
+
+  await redisMethods.del(redisMethods.getOtpKey({email:user.email,emailType:EmailEnum.TwoStepFA}))
+  
+
+  return firstTrick? "2fA is done":"login Successfully"
+  
+}
+
+
 
 

@@ -9,6 +9,14 @@ export const logInschema = {
   })
 
 }
+export const logIn2FASchema = {
+  body: joi.object({}).keys({
+    email: commonValditions.email.required(),
+    otp: commonValditions.otp.required(),
+
+  })
+
+}
 
 export const signUpschema = {
   query: joi.object({}).keys({
@@ -54,5 +62,17 @@ export const resendConfrimEmailschema={
 export const sendOTPforgetPasswordschema={
   body:joi.object({}).keys({
     email: commonValditions.email.required(),
+  })
+}
+
+export const sendResetPasswordLinkschema={
+  body:joi.object({}).keys({
+    email: commonValditions.email.required(),
+  })
+}
+export const resetPasswordWithLinkschema={
+  body:joi.object({}).keys({
+    token: joi.string().required(),
+    newPassword: commonValditions.password.required(),
   })
 }

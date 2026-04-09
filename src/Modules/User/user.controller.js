@@ -6,14 +6,15 @@ import { authorization } from "../../Middleware/authorization.midlleware.js"
 import { RoleEnum } from "../../Common/Enums/user.enums.js"
 import { allowedFileFormates, localUpload } from "../../Common/Services/Multer/multer.confing.js"
 import { validation } from "../../Middleware/validation.middleware.js"
-import { covPicSchema, GetAnthorUserProfile, ProfilePicSchema, updatePasswordSchema } from "./user.validation.js"
+import { covPicSchema, GetAnthorUserProfile, otp2FASchema, ProfilePicSchema, updatePasswordSchema } from "./user.validation.js"
 import * as redisMethods from "../../Common/Services/Redis/redis.service.js"
+import { succsesResponse } from "../../Common/Response/response.js"
 const userRouter = express.Router()
 
 
-userRouter.get("/",auth(),authorization() ,async (req, res, next) => {
+userRouter.get("/", auth(), authorization(), async (req, res, next) => {
     //    console.log();
-       
+
     try {
         const result = await userservice.getById(req.user)
         return res.status(201).json({ mes: "done", result })
@@ -23,9 +24,9 @@ userRouter.get("/",auth(),authorization() ,async (req, res, next) => {
 
     }
 })
-userRouter.post("/renew-token",auth(tokenType.refresh) ,async (req, res, next) => {
+userRouter.post("/renew-token", auth(tokenType.refresh), async (req, res, next) => {
     //    console.log();
-       
+
     try {
         const result = await userservice.renewToken(req.user)
         return res.status(201).json({ mes: "done", result })
@@ -36,96 +37,114 @@ userRouter.post("/renew-token",auth(tokenType.refresh) ,async (req, res, next) =
     }
 })
 
-userRouter.patch("/upload-mainPic",auth(),localUpload({folderName:"user",allowedFormates:allowedFileFormates.img}).single("profilePicture"),
-validation(ProfilePicSchema),async (req,res,next)=>{
-       console.log(req.file);
-       
- try {
-        const result = await userservice.uploadProfilePic(req.user._id,req.file)
-        return res.status(201).json({ mes: "done", result })
- 
-    } catch (error) {
-        next(error)
+userRouter.patch("/upload-mainPic", auth(), localUpload({ folderName: "user", allowedFormates: allowedFileFormates.img }).single("profilePicture"),
+    validation(ProfilePicSchema), async (req, res, next) => {
+        console.log(req.file);
 
-    }
+        try {
+            const result = await userservice.uploadProfilePic(req.user._id, req.file)
+            return res.status(201).json({ mes: "done", result })
 
-})
+        } catch (error) {
+            next(error)
 
-userRouter.patch("/upload-covPic",auth(),localUpload({folderName:"user",allowedFormates:allowedFileFormates.img}).array("covPic",2),
-validation(covPicSchema),async (req,res,next)=>{
-       console.log(req.files);
-       
- try {
-        const result = await userservice.uploadCovPic(req.user._id,req.files)
-        return res.status(201).json({ mes: "done", result })
- 
-    } catch (error) {
-        next(error)
+        }
 
-    }
+    })
 
-})
+userRouter.patch("/upload-covPic", auth(), localUpload({ folderName: "user", allowedFormates: allowedFileFormates.img }).array("covPic", 2),
+    validation(covPicSchema), async (req, res, next) => {
+        console.log(req.files);
 
-userRouter.get("/get-profile/:profileId",validation(GetAnthorUserProfile),async (req,res,next) => {
+        try {
+            const result = await userservice.uploadCovPic(req.user._id, req.files)
+            return res.status(201).json({ mes: "done", result })
 
-         
- try {
+        } catch (error) {
+            next(error)
+
+        }
+
+    })
+
+userRouter.get("/get-profile/:profileId", validation(GetAnthorUserProfile), async (req, res, next) => {
+
+
+    try {
         const result = await userservice.getProfile(req.params.profileId)
         return res.status(200).json({ mes: "done", result })
- 
+
     } catch (error) {
         next(error)
 
     }
-    
+
 })
 
-userRouter.delete("/profile-picture",auth(),async (req,res,next)=>{
-    try{
+userRouter.delete("/profile-picture", auth(), async (req, res, next) => {
+    try {
         const result = await userservice.removeProfilePic(req.user._id)
         return res.status(200).json({ mes: "done", result })
-    }catch(error){
+    } catch (error) {
         next(error)
     }
 })
 
 userRouter.get("/admin/profile-visits/:profileId",
-auth(),
-authorization(RoleEnum.Admin),
-validation(GetAnthorUserProfile),
-async (req,res,next)=>{
-    try{
-        const visits = await userservice.getProfileVisits(req.params.profileId)
-        return res.status(200).json({ mes: "done", visits })
-    }catch(error){
+    auth(),
+    authorization(RoleEnum.Admin),
+    validation(GetAnthorUserProfile),
+    async (req, res, next) => {
+        try {
+            const visits = await userservice.getProfileVisits(req.params.profileId)
+            return res.status(200).json({ mes: "done", visits })
+        } catch (error) {
+            next(error)
+        }
+    })
+
+userRouter.post("/logout", auth(), async (req, res, next) => {
+
+
+    try {
+        const result = await userservice.logOut(req.user._id, req.payload, req.body.logoutOptions)
+        return res.status(200).json({ mes: "done", result })
+
+    } catch (error) {
         next(error)
+
     }
 })
 
-userRouter.post("/logout",auth(),async (req,res,next) => {
 
-         
+userRouter.patch("/updatePassword", auth(), validation(updatePasswordSchema), async (req, res, next) => {
+
+
     try {
-           const result = await userservice.logOut(req.user._id,req.payload,req.body.logoutOptions)
-           return res.status(200).json({ mes: "done", result })
-    
-       } catch (error) {
-           next(error)
-   
-       }})
+        const result = await userservice.UpdatePassword(req.vbody, req.user)
+        return res.status(200).json({ mes: "done" })
 
-       
-userRouter.patch("/updatePassword",auth(),validation(updatePasswordSchema),async (req,res,next) => {
+    } catch (error) {
+        next(error)
 
-         
-    try {
-           const result = await userservice.UpdatePassword(req.vbody,req.user)
-           return res.status(200).json({ mes: "done" })
-    
-       } catch (error) {
-           next(error)
-   
-       }})
+    }
+})
+
+userRouter.post("/twoStepVarfication",auth(),async (req,res)=>{
+
+    const result = await userservice.send2FACode(req.user)
+
+    return succsesResponse({res,data:result})
+
+})
+
+userRouter.post("/twoStepVarficationEnabled",auth(),validation(otp2FASchema),async (req,res)=>{
+
+    const result = await userservice.Enaple2FA(req.user,req.vbody)
+
+    return succsesResponse({res,data:result})
+
+})
 
 
 export default userRouter

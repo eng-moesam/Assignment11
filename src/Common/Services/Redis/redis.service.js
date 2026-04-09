@@ -23,6 +23,9 @@ export function getLoginFailKey({ email }) {
     return `LOGIN::BLOCKED::${email}`;
   }
 
+  export function getPasswordResetJtiKey(jti) {
+    return `PWD_RESET_JTI::${jti}`;
+  }
 export async function set({key,value,exType="EX",exValue=120}) {
 
     return await client.set(key,value,{
@@ -67,4 +70,10 @@ export async function update(key,value) {
     }
     await set({key, value})
     return 1; 
+}
+export async function setExpire(key, seconds) {
+    return await client.expire(key, seconds);
+  }
+export async function decr(key) {
+    return await client.decr(key)
 }

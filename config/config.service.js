@@ -11,6 +11,7 @@ dotenv.config({path:envpath[NODE_ENV ||"dev"]})
 
 export const PORT =process.env.port || 3000;
 export const DB_URI =process.env.DB_URI || "";
+export const DB_URI_ATLAS =process.env.DB_URI_ATLAS || "";
 export const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS) ||10;
 export const ENCRPTION_KEY= process.env.ENCRPTION_KEY||""
 export const TOKEN_SIGNATURE_USER= process.env.TOKEN_SIGNATURE_USER||""
@@ -23,4 +24,9 @@ export const EMAIL_APP_PASSWORD=process.env.EMAIL_APP_PASSWORD||""
 export const EMAIL=process.env.EMAIL||""
 
 export const REDIS_URL = process.env.REDIS_URL||""
+
+
+export const PASSWORD_RESET_SECRET = process.env.PASSWORD_RESET_SECRET || "";
+export const PASSWORD_RESET_EXPIRES_MIN = parseInt(process.env.PASSWORD_RESET_EXPIRES_MIN) || 5;
+export const FRONTEND_URL = process.env.FRONTEND_URL || "";
 

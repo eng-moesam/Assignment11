@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "./src/main.js",
+  "engines": {
+    "node": "22.18.0"
+  },
   "scripts": {
     "start:dev": "node --watch ./src/main.js "
   },
@@ -17,6 +20,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.2",
+    "geoip-lite": "^1.4.10",
     "google-auth-library": "^10.6.1",
     "helmet": "^8.1.0",
     "joi": "^18.0.2",
@@ -26,5 +30,8 @@
     "multer": "^2.1.1",
     "nodemailer": "^8.0.1",
     "redis": "^5.11.0"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.0"
   }
 }
