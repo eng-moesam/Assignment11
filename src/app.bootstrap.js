@@ -105,9 +105,9 @@ app.use(globalErrHandlling)
 //   });
 // }
 
-app.listen(port,()=>{
-    console.log(`sever is running ${port}`);
-})
+// app.listen(port,()=>{
+//     console.log(`sever is running ${port}`);
+// })
    
 }
 export default bootstrap;
