@@ -1,4 +1,4 @@
-import { client } from "./redis.connection.js";
+import  client  from "./redis.connection.js";
 
 
 export function getBlackListToken({userId,tokenId}) {
