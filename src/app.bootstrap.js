@@ -98,16 +98,16 @@ app.use("/mesg",messageRouter)
 
 
 app.use(globalErrHandlling)
-if (process.env.NODE_ENV !== "production") {
-  const port = PORT || 3000;
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
-}
+// if (process.env.NODE_ENV !== "production") {
+//   const port = PORT || 3000;
+//   app.listen(port, () => {
+//     console.log(`Server running on port ${port}`);
+//   });
+// }
 
-// app.listen(port,()=>{
-//     console.log(`sever is running ${port}`);
-// })
+app.listen(port,()=>{
+    console.log(`sever is running ${port}`);
+})
    
 }
 export default bootstrap;
