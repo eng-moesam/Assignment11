@@ -127,10 +127,10 @@ export async function getById(userData) {
 
   
  export async function logOut(userId,tokenData,logoutOptions) {
-  console.log(tokenData);
-  console.log({"tokenData.jti":tokenData.jti});
+  // console.log(tokenData);
+  // console.log({"tokenData.jti":tokenData.jti});
     if (!tokenData || !tokenData.jti) {
-     console.error("Missing tokenData or jti:", tokenData);
+    //  console.error("Missing tokenData or jti:", tokenData);
      throw new Error("Invalid token data");
   }
 

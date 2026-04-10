@@ -20,7 +20,7 @@ export function localUpload({folderName="GeneralFiles",allowedFormates=allowedFi
     },
     filename:function(req,file,cb){
       const fileName = randomUUID() + "_" +file.originalname 
-      console.log({file});
+      // console.log({file});
       file.finalPath=`uploads/${folderName}/${fileName}`
         
       cb(null,fileName)

@@ -39,7 +39,7 @@ userRouter.post("/renew-token", auth(tokenType.refresh), async (req, res, next) 
 
 userRouter.patch("/upload-mainPic", auth(), localUpload({ folderName: "user", allowedFormates: allowedFileFormates.img }).single("profilePicture"),
     validation(ProfilePicSchema), async (req, res, next) => {
-        console.log(req.file);
+        // console.log(req.file);
 
         try {
             const result = await userservice.uploadProfilePic(req.user._id, req.file)
@@ -54,7 +54,7 @@ userRouter.patch("/upload-mainPic", auth(), localUpload({ folderName: "user", al
 
 userRouter.patch("/upload-covPic", auth(), localUpload({ folderName: "user", allowedFormates: allowedFileFormates.img }).array("covPic", 2),
     validation(covPicSchema), async (req, res, next) => {
-        console.log(req.files);
+        // console.log(req.files);
 
         try {
             const result = await userservice.uploadCovPic(req.user._id, req.files)

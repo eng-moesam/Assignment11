@@ -14,7 +14,7 @@ import { Types } from "mongoose"
             
             const validateResult = schema[schemakey].validate(
                 req[schemakey],{abortEarly:false})
-                  console.log({validateResult})
+                  // console.log({validateResult})
                 req["v" +schemakey]=validateResult.value
                  if(validateResult.error?.details.length >0){
                 // throw new Error(validateResult.error);
