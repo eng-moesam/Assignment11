@@ -19,7 +19,7 @@ import * as MethodRedis from "./Common/Services/Redis/redis.service.js"
 // dotenv.config({path:path.resolve("./config/.env.dev")})
 import geoip from 'geoip-lite'
 
-async function bootstrap(){
+// async function bootstrap(){
   
 const app =express()
 const port = PORT;
@@ -104,18 +104,18 @@ app.use("/mesg",messageRouter)
 
 
 app.use(globalErrHandlling)
-// if (process.env.NODE_ENV !== "production") {
-//   const port = PORT || 3000;
-//   app.listen(port, () => {
-//     console.log(`Server running on port ${port}`);
-//   });
-// }
-
-app.listen(port,()=>{
-    console.log(`sever is running ${port}`);
-})
-   
+if (process.env.NODE_ENV !== "production") {
+  const port = PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
 }
-export default bootstrap;
 
-// export default app
+// app.listen(port,()=>{
+//     console.log(`sever is running ${port}`);
+// })
+   
+// }
+// export default bootstrap;
+
+export default app
