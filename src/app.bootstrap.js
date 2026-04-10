@@ -72,7 +72,7 @@ app.use(rateLimit(
                     }
                     cb(null,hits)
             }
-  ,
+            ,
             async decrement(key){
                 const isExists= await MethodRedis.exists(key)
 
@@ -89,15 +89,11 @@ app.use(rateLimit(
     }
 ))
 
-app.use((req,res,next)=>{
-    console.log(req.headers["x-forwarded-for"]);
-    console.log(req.ip);
-    
-// console.log(geo);
 
-    next()
+
+app.get("/",(req,res)=>{
+    return res.json({msg:"welcome to server side apis"})
 })
-
  
 app.use(express.json())
 app.use("/uploads",express.static(path.resolve("./uploads")))
@@ -105,12 +101,15 @@ app.use("/auth",authRouter)
 app.use("/user",userRouter)
 app.use("/mesg",messageRouter)
 
-app.get("/",(req,res)=>{
-    return res.json({msg:"welcome to server side apis"})
-})
 
 
 app.use(globalErrHandlling)
+// if (process.env.NODE_ENV !== "production") {
+//   const port = PORT || 3000;
+//   app.listen(port, () => {
+//     console.log(`Server running on port ${port}`);
+//   });
+// }
 
 app.listen(port,()=>{
     console.log(`sever is running ${port}`);
@@ -118,3 +117,5 @@ app.listen(port,()=>{
    
 }
 export default bootstrap;
+
+// export default app

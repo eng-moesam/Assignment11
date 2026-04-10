@@ -1,4 +1,4 @@
 import bootstrap from "./app.bootstrap.js";
-
-
-bootstrap()
+// import app from "./app.bootstrap"
+// export default app
+export default bootstrap
