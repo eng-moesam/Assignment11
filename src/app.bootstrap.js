@@ -19,7 +19,7 @@ import * as MethodRedis from "./Common/Services/Redis/redis.service.js"
 // dotenv.config({path:path.resolve("./config/.env.dev")})
 import geoip from 'geoip-lite'
 
-// async function bootstrap(){
+async function bootstrap(){
   
 const app =express()
 const port = PORT;
@@ -115,7 +115,7 @@ if (process.env.NODE_ENV !== "production") {
 //     console.log(`sever is running ${port}`);
 // })
    
-// }
-// export default bootstrap;
+}
+export default bootstrap;
 
-export default app
+// export default app
